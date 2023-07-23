@@ -16,6 +16,10 @@ module CPU (
     wire          IF_Flush;
     wire [31 : 0] IF_Jump_target;
     wire [31 : 0] IF_Branch_target;
+    wire          IF_Is_Branch;
+    wire          IF_Branch_likely;
+    wire [  31:0] IF_Branch_Pred_target;
+    wire [  31:0] IF_Branch_normal;
 
     wire          ID_Flush;
     wire [31 : 0] ID_Instruction;
@@ -43,6 +47,9 @@ module CPU (
     wire [31 : 0] ID_comp_a;
     wire [31 : 0] ID_comp_b;
     wire [   2:0] ID_Branch_Type;
+    wire          ID_Update;
+    wire          ID_Branch_Actual;
+    wire          ID_Branch_likely;
 
 
     wire          EX_MemRead;
@@ -90,8 +97,10 @@ module CPU (
 
     // IF stage
     always @(posedge reset or posedge clk) begin
-        if (reset) IF_PC <= 32'h00000000;
+        if (reset) IF_PC <= 32'h00400000;
         else if (Stall) IF_PC <= IF_PC;
+        else if (IF_Is_Branch && ~ID_Update) IF_PC <= IF_Branch_Pred_target;
+        else if (~IF_Is_Branch && ID_PCSrc == 2'b00) IF_PC <= IF_Branch_normal;
         else IF_PC <= IF_PC_next;
     end
 
@@ -104,18 +113,29 @@ module CPU (
     //     .Instruction(IF_Instruction)
     // );
 
+    BP two_bit_BP (
+        .clk          (clk),
+        .reset        (reset),
+        .OpCode       (IF_Instruction[31:26]),
+        .Update       (ID_Update),
+        .Branch_Actual(ID_Branch_Actual),
+        .Is_Branch    (IF_Is_Branch),
+        .Branch_likely(IF_Branch_likely)
+    );
 
 
 
     IF_ID if_id1 (
-        .clk           (clk),
-        .reset         (reset),
-        .IF_PC_plus_4  (IF_PC_plus_4),
-        .IF_Instruction(IF_Instruction),
-        .IF_Flush      (IF_Flush),
-        .Stall         (Stall),
-        .ID_PC_plus_4  (ID_PC_plus_4),
-        .ID_Instruction(ID_Instruction)
+        .clk             (clk),
+        .reset           (reset),
+        .IF_PC_plus_4    (IF_PC_plus_4),
+        .IF_Instruction  (IF_Instruction),
+        .IF_Flush        (IF_Flush),
+        .IF_Branch_likely(IF_Branch_likely),
+        .Stall           (Stall),
+        .ID_PC_plus_4    (ID_PC_plus_4),
+        .ID_Instruction  (ID_Instruction),
+        .ID_Branch_likely(ID_Branch_likely)
     );
 
 
@@ -171,11 +191,17 @@ module CPU (
                     (ID_Branch_Type==3'b100)?((ID_Instruction[20:16]==0)?(ID_comp_a < 0):(ID_comp_a >= 0)):0;
 
     // PC jump and branch
+    assign ID_Branch_Actual = ID_Branch & ID_Zero;
+
+    assign ID_Update = (ID_Branch_Actual ^ ID_Branch_likely) & ID_Branch;
 
     assign IF_Jump_target = {ID_PC_plus_4[31:28], ID_Instruction[25:0], 2'b00};
 
+    assign IF_Branch_Pred_target = IF_Branch_likely ? IF_PC_plus_4 + {{{16{IF_Instruction[15]}}, IF_Instruction[15:0]}, 2'b00} : IF_PC_plus_4;
 
-    assign IF_Branch_target = (ID_Branch & ID_Zero) ? ID_PC_plus_4 + {ID_Lu_out[29:0], 2'b00} : IF_PC_plus_4;
+    assign IF_Branch_target = ID_Branch_Actual ?  ID_PC_plus_4 + {ID_Lu_out[29:0], 2'b00} : ID_PC_plus_4 ;
+
+    assign IF_Branch_normal = ID_Update ? IF_Branch_target : IF_PC_plus_4;
 
     assign IF_PC_next = (ID_PCSrc == 2'b00) ? IF_Branch_target : (ID_PCSrc == 2'b01) ? IF_Jump_target : ID_Databus1;
 
@@ -321,6 +347,7 @@ module CPU (
         ID_Zero,
         ID_PCSrc,
         ID_Instruction,
+        ID_Update,
         EX_RegWrite,
         EX_MemRead,
         EX_Write_register,

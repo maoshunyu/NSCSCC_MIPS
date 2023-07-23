@@ -32,11 +32,11 @@ module top (
         .MemWriteData  (MemWriteData)
     );
     I_RAM iram (
-        .clka (nclk),                  // input wire clka
-        .wea  (1'b0),                  // input wire [0 : 0] wea
-        .addra(phy_Instr_Addr[12:2]),  // input wire [10 : 0] addra
-        .dina (32'b0),                 // input wire [31 : 0] dina
-        .douta(IF_Instruction)         // output wire [31 : 0] douta
+        .clk (clk),                  // input wire clka
+        .we  (1'b0),                  // input wire [0 : 0] wea
+        .a(phy_Instr_Addr[10:2]),  // input wire [10 : 0] addra
+        .d (32'b0),                 // input wire [31 : 0] dina
+        .spo(IF_Instruction)         // output wire [31 : 0] douta
     );
     D_RAM dram (
         .clka (nclk),                   // input wire clka

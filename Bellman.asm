@@ -116,30 +116,30 @@ li		$t1, 1		        # $t1 = 1 = i
 li		$t3, -1		        # $t3 = -1
 
 loop1:
-bge		$t1, $a0, out1	    # if i >= n then goto out1
+
 sll		$t2, $t1, 2			# $t2 = 4*i
 add		$t2, $t0, $t2		# $t2 = dist[i]
-sw		$t3, 0($t2)		    
 addi	$t1, $t1, 1			# i++
-j		loop1				# jump to loop1
+sw		$t3, 0($t2)		    
+blt		$t1, $a0, loop1	    # if i >= n then goto out1
 
 out1:
 li		$t1, 1		        # $t1 = 1 = i
 li		$s1, -1		        # $s1 = -1                                
 
 loopi:
-bge		$t1, $a0, outi	    # if $t1 >= $a0 then goto outi
+
 li		$t2, 0		        # $t2 = 0 = u
 
 loopu:
-bge		$t2, $a0, outu	    # if $t2 >= $a0 then goto outu
+
 li		$t3, 0		        # $t3 = 0 = v
 sll		$t5, $t2, 2			# $t5 = 4*u
 add		$t5, $t5, $t0		# $t5 = $t5 + t0 = dist[u]
 lw		$t5, 0($t5)		     
 
 loopv:
-bge		$t3, $a0, outv	    # if $t3 >= $a0 then goto outv
+
 sll		$t4, $t2, 5			# $t4 = u << 5
 add		$t4, $t4, $t3		# $t4 = $t4 + v = addr
 sll		$t6, $t3, 2			
@@ -163,20 +163,18 @@ sll		$t6, $t3, 2
 add		$t6, $t6, $t0	
 sw		$t7, 0($t6)		 
 
-
-
 next:
 addi	$t3, $t3, 1			# $t3 = $t3 + 1
-j		loopv				# jump to loopv
+blt		$t3, $a0, loopv	    # if $t3 >= $a0 then goto outv
 
 
 outv:
 addi	$t2, $t2, 1			# $t2 = $t2 + 1
-j		loopu				# jump to loopu
+blt	$t2, $a0, loopu	    # if $t2 >= $a0 then goto outu
 
 outu:
 addi	$t1, $t1, 1			# $t1 = $t1 + 1
-j		loopi				# jump to loopi
+blt		$t1, $a0, loopi	    # if $t1 >= $a0 then goto outi
 
 outi:
 jr		$ra					# jump to $ra
