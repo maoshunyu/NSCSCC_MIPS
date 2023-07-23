@@ -1,20 +1,23 @@
 module CPU (
-    input             reset,
-    input             clk,
-    output reg        MemRead,
-    output reg [31:0] MemAddress
+    input                reset,
+    input                clk,
+    input  wire [31 : 0] IF_Instruction,
+    output reg  [31 : 0] IF_PC,
+    output reg           MemWrite,
+    input  wire [  31:0] MemReadData,
+    output reg  [  31:0] MemAddress,
+    output reg  [  31:0] MemWriteData
 );
 
     wire          Stall;
-    reg  [31 : 0] IF_PC;
+
     wire [31 : 0] IF_PC_next;
     wire [31 : 0] IF_PC_plus_4;
-    wire [31 : 0] IF_Instruction;
     wire          IF_Flush;
     wire [31 : 0] IF_Jump_target;
     wire [31 : 0] IF_Branch_target;
 
-
+    wire          ID_Flush;
     wire [31 : 0] ID_Instruction;
     wire [31 : 0] ID_PC_plus_4;
     wire          ID_Forward_A;
@@ -88,17 +91,18 @@ module CPU (
     // IF stage
     always @(posedge reset or posedge clk) begin
         if (reset) IF_PC <= 32'h00000000;
+        else if (Stall) IF_PC <= IF_PC;
         else IF_PC <= IF_PC_next;
     end
 
     assign IF_PC_plus_4 = IF_PC + 32'd4;
 
 
-    // Instruction Memory
-    InstructionMemory instruction_memory1 (
-        .Address    (IF_PC),
-        .Instruction(IF_Instruction)
-    );
+    // // Instruction Memory
+    // InstructionMemory instruction_memory1 (
+    //     .Address    (IF_PC),
+    //     .Instruction(IF_Instruction)
+    // );
 
 
 
@@ -116,21 +120,21 @@ module CPU (
 
 
     Control control1 (
-        .OpCode        (ID_Instruction[31:26]),
-        .Funct         (ID_Instruction[5 : 0]),
-        .PCSrc         (ID_PCSrc),
-        .Branch        (ID_Branch),
-        .RegWrite      (ID_RegWrite),
-        .RegDst        (ID_RegDst),
-        .MemRead       (ID_MemRead),
-        .MemWrite      (ID_MemWrite),
-        .MemtoReg      (ID_MemtoReg),
-        .ALUSrc1       (ID_ALUSrc1),
-        .ALUSrc2       (ID_ALUSrc2),
-        .ExtOp         (ID_ExtOp),
-        .LuOp          (ID_LuOp),
-        .ALUOp         (ID_ALUOp),
-        .ID_Branch_Type(ID_Branch_Type)
+        .OpCode     (ID_Instruction[31:26]),
+        .Funct      (ID_Instruction[5 : 0]),
+        .PCSrc      (ID_PCSrc),
+        .Branch     (ID_Branch),
+        .RegWrite   (ID_RegWrite),
+        .RegDst     (ID_RegDst),
+        .MemRead    (ID_MemRead),
+        .MemWrite   (ID_MemWrite),
+        .MemtoReg   (ID_MemtoReg),
+        .ALUSrc1    (ID_ALUSrc1),
+        .ALUSrc2    (ID_ALUSrc2),
+        .ExtOp      (ID_ExtOp),
+        .LuOp       (ID_LuOp),
+        .ALUOp      (ID_ALUOp),
+        .Branch_Type(ID_Branch_Type)
     );
 
     // Register File
@@ -179,7 +183,7 @@ module CPU (
     ID_EX id_ex1 (
         clk,
         reset,
-        Stall,
+        ID_Flush,
         ID_MemRead,
         ID_MemWrite,
         ID_RegWrite,
@@ -258,19 +262,21 @@ module CPU (
     );
 
 
-    DataMemory data_memory1 (
-        .reset     (reset),
-        .clk       (clk),
-        .Address   (MEM_ALU_out),
-        .Write_data(MEM_Data_in2),
-        .Read_data (MEM_Read_Data),
-        .MemRead   (MEM_MemRead),
-        .MemWrite  (MEM_MemWrite)
-    );
+    // DataMemory data_memory1 (
+    //     .reset     (reset),
+    //     .clk       (clk),
+    //     .Address   (MEM_ALU_out),
+    //     .Write_data(MEM_Data_in2),
+    //     .Read_data (MEM_Read_Data),
+    //     .MemRead   (MEM_MemRead),
+    //     .MemWrite  (MEM_MemWrite)
+    // );
     always @(*) begin
-        MemRead <= MEM_MemRead;
+        MemWrite <= MEM_MemWrite;
         MemAddress <= MEM_ALU_out;
+        MemWriteData <= MEM_Data_in2;
     end
+    assign MEM_Read_Data = MemReadData;
     MEM_WB mem_wb1 (
         clk,
         reset,
@@ -289,7 +295,7 @@ module CPU (
     );
 
     // write back
-    assign WB_Databus3 = (WB_MemtoReg == 2'b00)? WB_ALU_out: (WB_MemtoReg == 2'b01)? WB_Read_Data: WB_PC_plus_4;
+    assign WB_Databus3 = (WB_MemtoReg == 2'b00)? WB_ALU_out: ((WB_MemtoReg == 2'b01)? WB_Read_Data: WB_PC_plus_4);
 
 
 
@@ -321,6 +327,7 @@ module CPU (
         MEM_MemRead,
         MEM_Write_register,
         Stall,
-        IF_Flush
+        IF_Flush,
+        ID_Flush
     );
 endmodule

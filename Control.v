@@ -15,7 +15,7 @@ module Control (
     output     [4 -1:0] ALUOp,
     output     [   2:0] Branch_Type
 );
-    assign Branchtype = (OpCode == 6'h04) ? 3'b000 :  //beq
+    assign Branch_Type = (OpCode == 6'h04) ? 3'b000 :  //beq
         (OpCode == 6'h05) ? 3'b001 :  //bne
         (OpCode == 6'h06) ? 3'b010 :  //blez
         (OpCode == 6'h07) ? 3'b011 :  //bgtz

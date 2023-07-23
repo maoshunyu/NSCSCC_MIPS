@@ -1,7 +1,7 @@
 module ID_EX (
     input               clk,
     input               reset,
-    input               Stall,
+    input               ID_Flush,
     input               ID_MemRead,
     input               ID_MemWrite,
     input               ID_RegWrite,
@@ -30,7 +30,7 @@ module ID_EX (
     output reg  [4 : 0] EX_Write_register
 );
     always @(posedge clk or posedge reset) begin
-        if (reset) begin
+        if (reset || ID_Flush) begin
             EX_MemRead <= 0;
             EX_MemWrite <= 0;
             EX_RegWrite <= 0;
@@ -44,21 +44,6 @@ module ID_EX (
             EX_Databus2 <= 0;
             EX_Lu_out <= 0;
             EX_Write_register <= 0;
-        end
-        else if (Stall) begin
-            EX_MemRead <= EX_MemRead;
-            EX_MemWrite <= EX_MemWrite;
-            EX_RegWrite <= EX_RegWrite;
-            EX_ALUSrc1 <= EX_ALUSrc1;
-            EX_ALUSrc2 <= EX_ALUSrc2;
-            EX_MemtoReg <= EX_MemtoReg;
-            EX_ALUOp <= EX_ALUOp;
-            EX_PC_plus_4 <= EX_PC_plus_4;
-            EX_Instruction <= EX_Instruction;
-            EX_Databus1 <= EX_Databus1;
-            EX_Databus2 <= EX_Databus2;
-            EX_Lu_out <= EX_Lu_out;
-            EX_Write_register <= EX_Write_register;
         end
         else begin
             EX_MemRead <= ID_MemRead;

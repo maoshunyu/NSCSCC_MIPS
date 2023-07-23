@@ -14,8 +14,8 @@ module RegisterFile (
     reg [31:0] RF_data[31:1];
 
     // read data from RF_data as Read_data1 and Read_data2
-    assign Read_data1 = (Read_register1 == 5'b00000) ? 32'h00000000 : RF_data[Read_register1];
-    assign Read_data2 = (Read_register2 == 5'b00000) ? 32'h00000000 : RF_data[Read_register2];
+    assign Read_data1 = (Read_register1 == 5'b00000) ? 32'h00000000 : (Read_register1==Write_register && RegWrite)? Write_data:RF_data[Read_register1];
+    assign Read_data2 = (Read_register2 == 5'b00000) ? 32'h00000000 : (Read_register2==Write_register && RegWrite)? Write_data:RF_data[Read_register2];
 
     integer i;
     // write Write_data to RF_data at clock posedge
