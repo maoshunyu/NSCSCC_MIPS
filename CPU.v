@@ -20,10 +20,13 @@ module CPU (
     wire          IF_Branch_likely;
     wire [  31:0] IF_Branch_Pred_target;
     wire [  31:0] IF_Branch_normal;
+    wire [  31:0] IF_BTB_target;
+    wire          IF_BTB_Hit;
 
     wire          ID_Flush;
     wire [31 : 0] ID_Instruction;
     wire [31 : 0] ID_PC_plus_4;
+    wire [31 : 0] ID_PC;
     wire          ID_Forward_A;
     wire          ID_Forward_B;
     wire [ 1 : 0] ID_RegDst;
@@ -50,6 +53,7 @@ module CPU (
     wire          ID_Update;
     wire          ID_Branch_Actual;
     wire          ID_Branch_likely;
+    wire          ID_BTB_Hit;
 
 
     wire          EX_MemRead;
@@ -116,8 +120,10 @@ module CPU (
     BP two_bit_BP (
         .clk          (clk),
         .reset        (reset),
+        .PC           (IF_PC),
+        .PC_Update    (ID_PC),
         .OpCode       (IF_Instruction[31:26]),
-        .Update       (ID_Update),
+        .Update       (ID_Branch & ~Stall),
         .Branch_Actual(ID_Branch_Actual),
         .Is_Branch    (IF_Is_Branch),
         .Branch_likely(IF_Branch_likely)
@@ -129,13 +135,17 @@ module CPU (
         .clk             (clk),
         .reset           (reset),
         .IF_PC_plus_4    (IF_PC_plus_4),
+        .IF_PC           (IF_PC),
         .IF_Instruction  (IF_Instruction),
         .IF_Flush        (IF_Flush),
         .IF_Branch_likely(IF_Branch_likely),
+        .IF_BTB_Hit      (IF_BTB_Hit),
         .Stall           (Stall),
         .ID_PC_plus_4    (ID_PC_plus_4),
+        .ID_PC           (ID_PC),
         .ID_Instruction  (ID_Instruction),
-        .ID_Branch_likely(ID_Branch_likely)
+        .ID_Branch_likely(ID_Branch_likely),
+        .ID_BTB_Hit      (ID_BTB_Hit)
     );
 
 
@@ -190,14 +200,26 @@ module CPU (
                     (ID_Branch_Type==3'b011)?(ID_comp_a > 0):
                     (ID_Branch_Type==3'b100)?((ID_Instruction[20:16]==0)?(ID_comp_a < 0):(ID_comp_a >= 0)):0;
 
+
     // PC jump and branch
     assign ID_Branch_Actual = ID_Branch & ID_Zero;
-
-    assign ID_Update = (ID_Branch_Actual ^ ID_Branch_likely) & ID_Branch;
+    wire ID_BR=(ID_Branch_Actual ^ ID_Branch_likely);
+    assign ID_Update = (ID_Branch_likely ? ~(ID_BTB_Hit ^ ID_BR)  : ID_BR ) & ID_Branch;
 
     assign IF_Jump_target = {ID_PC_plus_4[31:28], ID_Instruction[25:0], 2'b00};
 
-    assign IF_Branch_Pred_target = IF_Branch_likely ? IF_PC_plus_4 + {{{16{IF_Instruction[15]}}, IF_Instruction[15:0]}, 2'b00} : IF_PC_plus_4;
+    BTB u_BTB (
+        .clk                 (clk),
+        .reset               (reset),
+        .Update              (ID_Branch),
+        .PC                  (IF_PC),
+        .PC_Update           (ID_PC),
+        .Branch_Pred_target  (IF_BTB_target),
+        .Branch_Update_target(ID_PC_plus_4 + {ID_Lu_out[29:0], 2'b00}),
+        .BTB_Hit             (IF_BTB_Hit)
+    );
+
+    assign IF_Branch_Pred_target = IF_Branch_likely ? IF_BTB_Hit ? IF_BTB_target : IF_PC_plus_4 : IF_PC_plus_4;
 
     assign IF_Branch_target = ID_Branch_Actual ?  ID_PC_plus_4 + {ID_Lu_out[29:0], 2'b00} : ID_PC_plus_4 ;
 

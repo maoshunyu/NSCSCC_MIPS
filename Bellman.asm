@@ -120,8 +120,9 @@ loop1:
 sll		$t2, $t1, 2			# $t2 = 4*i
 add		$t2, $t0, $t2		# $t2 = dist[i]
 addi	$t1, $t1, 1			# i++
+slt $1,$t1,$a0
 sw		$t3, 0($t2)		    
-blt		$t1, $a0, loop1	    # if i >= n then goto out1
+bne		$1, $0, loop1	    # if i >= n then goto out1
 
 out1:
 li		$t1, 1		        # $t1 = 1 = i
@@ -144,28 +145,28 @@ sll		$t4, $t2, 5			# $t4 = u << 5
 add		$t4, $t4, $t3		# $t4 = $t4 + v = addr
 sll		$t6, $t3, 2			
 add		$t6, $t6, $t0		
-lw		$t6, 0($t6)         # $t6 = dist[v]
+lw		$t8, 0($t6)         # $t6 = dist[v]
 
 sll		$t7, $t4, 2			
 add		$t7, $t7, $a1		
 lw		$t7, 0($t7)         # $t7 = graph[addr]
+addi	$t3, $t3, 1			# $t3 = $t3 + 1
+slt $t9,$t3,$a0
 beq		$t5, $s1, next	    # if $t5 == -1 then goto next
 beq		$t7, $s1, next	    # if $t7 == -1 then goto next
-
 add		$t7, $t7, $t5		# $t7 = $t7 + $t5
-beq		$t6, $s1, if	    # if $t6 == -1 then goto if
-bgt		$t6, $t7, if	    # if $t6 > $t7 then goto if
+beq		$t8, $s1, if	    # if $t6 == -1 then goto if
+bgt		$t8, $t7, if	    # if $t6 > $t7 then goto if
 j		next				# jump to next
 
 
 if:
-sll		$t6, $t3, 2			
-add		$t6, $t6, $t0	
+nop
+nop
 sw		$t7, 0($t6)		 
 
 next:
-addi	$t3, $t3, 1			# $t3 = $t3 + 1
-blt		$t3, $a0, loopv	    # if $t3 >= $a0 then goto outv
+bne		$t9, $0, loopv	    # if $t3 >= $a0 then goto outv
 
 
 outv:
