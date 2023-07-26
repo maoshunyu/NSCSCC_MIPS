@@ -13,13 +13,19 @@ module Control (
     output reg          ExtOp,
     output reg          LuOp,
     output     [4 -1:0] ALUOp,
-    output     [   2:0] Branch_Type
+    output    reg [   2:0] Branch_Type
 );
-    assign Branch_Type = (OpCode == 6'h04) ? 3'b000 :  //beq
-        (OpCode == 6'h05) ? 3'b001 :  //bne
-        (OpCode == 6'h06) ? 3'b010 :  //blez
-        (OpCode == 6'h07) ? 3'b011 :  //bgtz
-        (OpCode == 6'h01) ? 3'b100 : 3'b000;  //bgez/bltz
+
+        always @(*) begin
+            case (OpCode)
+                6'h04: Branch_Type<=3'b000;
+                6'h05: Branch_Type<=3'b001;
+                6'h06: Branch_Type<=3'b010;
+                6'h07: Branch_Type<=3'b011;
+                6'h01: Branch_Type<=3'b100;
+                default: Branch_Type<=3'b000;
+            endcase
+        end
     always @(*) begin
         case (OpCode)
             6'h00: begin
@@ -104,6 +110,49 @@ module Control (
                 ALUSrc2 <= 1'b0;
                 ExtOp <= 1'b1;
                 LuOp <= 1'b0;  //LuOp=x
+                
+            end
+            6'h01: begin  // bltz/bgtz
+                PCSrc <= 2'b00;
+                Branch <= 1'b1;
+                RegWrite <= 1'b0;
+                RegDst <= 2'b00;  //RegDst=x;
+                MemRead <= 1'b0;  //MemRead=x;
+                MemWrite <= 1'b0;
+                MemtoReg <= 2'b00;  //MemtoReg=x;
+                ALUSrc1 <= 1'b0;
+                ALUSrc2 <= 1'b0;
+                ExtOp <= 1'b1;
+                LuOp <= 1'b0;  //LuOp=x 
+            end
+
+            6'h06: begin  // blez
+                PCSrc <= 2'b00;
+                Branch <= 1'b1;
+                RegWrite <= 1'b0;
+                RegDst <= 2'b00;  //RegDst=x;
+                MemRead <= 1'b0;  //MemRead=x;
+                MemWrite <= 1'b0;
+                MemtoReg <= 2'b00;  //MemtoReg=x;
+                ALUSrc1 <= 1'b0;
+                ALUSrc2 <= 1'b0;
+                ExtOp <= 1'b1;
+                LuOp <= 1'b0;  //LuOp=x
+                
+            end
+            6'h07: begin  // bgtz
+                PCSrc <= 2'b00;
+                Branch <= 1'b1;
+                RegWrite <= 1'b0;
+                RegDst <= 2'b00;  //RegDst=x;
+                MemRead <= 1'b0;  //MemRead=x;
+                MemWrite <= 1'b0;
+                MemtoReg <= 2'b00;  //MemtoReg=x;
+                ALUSrc1 <= 1'b0;
+                ALUSrc2 <= 1'b0;
+                ExtOp <= 1'b1;
+                LuOp <= 1'b0;  //LuOp=x
+                
             end
             6'h08: begin  //addi
                 PCSrc <= 2'b00;
