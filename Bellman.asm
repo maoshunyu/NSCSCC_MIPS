@@ -151,31 +151,28 @@ sll		$t7, $t4, 2
 add		$t7, $t7, $a1		
 lw		$t7, 0($t7)         # $t7 = graph[addr]
 addi	$t3, $t3, 1			# $t3 = $t3 + 1
-slt $t9,$t3,$a0
 beq		$t5, $s1, next	    # if $t5 == -1 then goto next
 beq		$t7, $s1, next	    # if $t7 == -1 then goto next
 add		$t7, $t7, $t5		# $t7 = $t7 + $t5
 beq		$t8, $s1, if	    # if $t6 == -1 then goto if
 bgt		$t8, $t7, if	    # if $t6 > $t7 then goto if
-j		next				# jump to next
+b		next				# jump to next
 
 
 if:
-nop
-nop
 sw		$t7, 0($t6)		 
 
 next:
-bne		$t9, $0, loopv	    # if $t3 >= $a0 then goto outv
+bne		$t3, $a0, loopv	    # if $t3 >= $a0 then goto outv
 
 
 outv:
 addi	$t2, $t2, 1			# $t2 = $t2 + 1
-blt	$t2, $a0, loopu	    # if $t2 >= $a0 then goto outu
+bne	    $t2, $a0, loopu	    # if $t2 >= $a0 then goto outu
 
 outu:
 addi	$t1, $t1, 1			# $t1 = $t1 + 1
-blt		$t1, $a0, loopi	    # if $t1 >= $a0 then goto outi
+bne		$t1, $a0, loopi	    # if $t1 >= $a0 then goto outi
 
 outi:
 jr		$ra					# jump to $ra
