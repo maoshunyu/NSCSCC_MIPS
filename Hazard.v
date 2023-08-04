@@ -14,7 +14,7 @@ module Hazard (
     output reg          ID_Flush
 );
     always @(*) begin
-        IF_Flush <= (ID_PCSrc != 2'b00) || (ID_Update && ~Stall) ? 1 : 0;
+        IF_Flush <= (ID_PCSrc != 2'b00 && ~Stall) || (ID_Update && ~Stall) ? 1 : 0;
     end
 
     always @(*) begin

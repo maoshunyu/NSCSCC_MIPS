@@ -199,7 +199,7 @@ module CPU (
                     (ID_Branch_Type==3'b010)?(ID_comp_a <= 0):
                     (ID_Branch_Type==3'b011)?(ID_comp_a > 0):
                     (ID_Branch_Type==3'b100)?((ID_Instruction[20:16]==0)?(ID_comp_a < 0):(ID_comp_a >= 0)):0;
-
+//
 
     // PC jump and branch
     assign ID_Branch_Actual = ID_Branch & ID_Zero;
@@ -225,7 +225,7 @@ module CPU (
 
     assign IF_Branch_normal = ID_Update ? IF_Branch_target : IF_PC_plus_4;
 
-    assign IF_PC_next = (ID_PCSrc == 2'b00) ? IF_Branch_target : (ID_PCSrc == 2'b01) ? IF_Jump_target : ID_Databus1;
+    assign IF_PC_next = (ID_PCSrc == 2'b00) ? IF_Branch_target : (ID_PCSrc == 2'b01) ? IF_Jump_target : ID_comp_a;
 
 
     ID_EX id_ex1 (

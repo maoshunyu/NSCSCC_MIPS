@@ -14,10 +14,10 @@ module Forward (
     output reg [ 1:0] EX_Forward_B
 );
     always @(*) begin
-        if(MEM_RegWrite && MEM_Write_register==ID_Instruction[25:21] && MEM_Write_register!=0 && (ID_PCSrc||ID_Branch))
+        if(MEM_RegWrite && MEM_Write_register==ID_Instruction[25:21] && MEM_Write_register!=0 && (ID_PCSrc[0]||ID_Branch))
             ID_Forward_A <= 1;
         else ID_Forward_A <= 0;
-        if(MEM_RegWrite && MEM_Write_register==ID_Instruction[20:16] && MEM_Write_register!=0 && (ID_PCSrc||ID_Branch))
+        if(MEM_RegWrite && MEM_Write_register==ID_Instruction[20:16] && MEM_Write_register!=0 && (ID_PCSrc[0]||ID_Branch))
             ID_Forward_B <= 1;
         else ID_Forward_B <= 0;
     end
