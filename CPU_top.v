@@ -32,10 +32,10 @@ module top (
         .MemWriteData  (MemWriteData)
     );
     I_RAM iram (
-        .clk (clk),                  // input wire clka
-        .we  (1'b0),                  // input wire [0 : 0] wea
-        .a(phy_Instr_Addr[10:2]),  // input wire [10 : 0] addra
-        .d (32'b0),                 // input wire [31 : 0] dina
+        .clk(clk),                   // input wire clka
+        .we (1'b0),                  // input wire [0 : 0] wea
+        .a  (phy_Instr_Addr[10:2]),  // input wire [10 : 0] addra
+        .d  (32'b0),                 // input wire [31 : 0] dina
         .spo(IF_Instruction)         // output wire [31 : 0] douta
     );
     D_RAM dram (
@@ -55,12 +55,12 @@ module top (
         .is_peri(is_peri)
     );
 
-    reg        i_Tx_DV;
-    wire       o_Tx_Active;
-    wire       o_Tx_Done;
-    wire       o_Rx_DV;
-    reg        Rx_Done;
-    reg        Tx_Done;
+    wire       rx_ready;
+    reg        rx_avai;
+    wire       tx_busy;
+    reg        tx_start;
+    reg        tx_done;
+    wire       o_Tx_Done;  //Only High for 1 Cycle
 
     reg  [7:0] uart_txd;
     wire [7:0] uart_rxd;
@@ -70,12 +70,8 @@ module top (
         if (reset) begin
             leds <= 0;
             ans <= 0;
-            uart_txd <= 0;
-            con <= 0;
             Peri_ReadData <= 0;
-            Rx_Done <= 0;
-            Tx_Done <= 0;
-            i_Tx_DV <= 0;
+            tx_start <= 0;
         end
         else begin
             if (is_peri) begin
@@ -85,57 +81,45 @@ module top (
                             leds <= MemWriteData[7:0];
                             ans  <= MemWriteData[11:8];
                         end
-                        Rx_Done <= Rx_Done ^ o_Rx_DV;
-                        Tx_Done <= Tx_Done ^ o_Tx_Done;
-                        i_Tx_DV <= 1;
                     end
                     8'h18: begin  //txd
-                        if (MemWrite) begin
+                        if (MemWrite && !tx_busy) begin
+                            tx_start <= 1;
                             uart_txd <= MemWriteData[7:0];
-                            i_Tx_DV  <= 1;
                         end
-                        else i_Tx_DV <= 1;
-                        Rx_Done <= Rx_Done ^ o_Rx_DV;
-                        Tx_Done <= Tx_Done ^ o_Tx_Done;
                     end
-                    8'h1c: begin
-                        Peri_ReadData <= uart_rxd;
-                        Rx_Done <= Rx_Done ^ o_Rx_DV;
-                        Tx_Done <= Tx_Done ^ o_Tx_Done;
-                        i_Tx_DV <= 1;
+                    8'h1c: begin  //rxd
+                        if (MemRead) Peri_ReadData <= uart_rxd;
                     end
                     8'h20: begin  //con
-                        con <= {o_Tx_Active, Rx_Done, Tx_Done, 2'b0};
-                        Rx_Done <= 0;
-                        Tx_Done <= 0;
-                        i_Tx_DV <= 1;
-                    end
-                    default: begin
-                        Rx_Done <= Rx_Done ^ o_Rx_DV;
-                        Tx_Done <= Tx_Done ^ o_Tx_Done;
-                        i_Tx_DV <= 1;
+                        if (MemRead) Peri_ReadData <= {tx_busy, rx_avai, tx_done, 2'b0};
                     end
                 endcase
             end
-            else begin
-                Rx_Done <= Rx_Done ^ o_Rx_DV;
-                Tx_Done <= Tx_Done ^ o_Tx_Done;
-                i_Tx_DV <= 1;
-            end
         end
+    end
+    always @(posedge clk or posedge reset) begin
+        if (reset) rx_avai <= 0;
+        else if (rx_ready) rx_avai <= 1;
+        else if (is_peri && phy_Data_Addr[7:0] == 8'h20 && MemRead && rx_avai) rx_avai <= 0;
+    end
+    always @(posedge clk or posedge reset) begin
+        if (reset) tx_done <= 0;
+        else if (o_Tx_Done) tx_done <= 1;
+        else if (is_peri && phy_Data_Addr[7:0] == 8'h20 && MemRead && tx_done) tx_done <= 0;
     end
     uart_tx u_uart_tx (
         .i_Clock    (clk),
-        .i_Tx_DV    (i_Tx_DV),
+        .i_Tx_DV    (tx_start),
         .i_Tx_Byte  (uart_txd),
-        .o_Tx_Active(o_Tx_Active),
+        .o_Tx_Active(tx_busy),
         .o_Tx_Serial(txd),
         .o_Tx_Done  (o_Tx_Done)
     );
     uart_rx u_uart_rx (
         .i_Clock    (clk),
         .i_Rx_Serial(rxd),
-        .o_Rx_DV    (o_Rx_DV),
+        .o_Rx_DV    (rx_ready),
         .o_Rx_Byte  (uart_rxd)
     );
 
